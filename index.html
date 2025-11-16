@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="th" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Image Tools - เครื่องมือจัดการภาพแบบมืออาชีพ</title>
+    <link rel="icon" href="./image/logo.jpg" type="image/jpeg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/cropperjs@1.5.13/dist/cropper.css"
+    />
+    <script src="https://unpkg.com/cropperjs@1.5.13/dist/cropper.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+      * {
+        font-family: 'Noto Sans Thai', sans-serif;
+      }
+
+      :root {
+        --bg-primary: #ffffff;
+        --bg-secondary: #f9fafb;
+        --bg-tertiary: #f3f4f6;
+        --text-primary: #111827;
+        --text-secondary: #6b7280;
+        --border-color: #e5e7eb;
+        --accent-color: #3b82f6;
+        --accent-hover: #2563eb;
+      }
+
+      .dark {
+        --bg-primary: #1f2937;
+        --bg-secondary: #111827;
+        --bg-tertiary: #374151;
+        --text-primary: #f9fafb;
+        --text-secondary: #9ca3af;
+        --border-color: #4b5563;
+        --accent-color: #60a5fa;
+        --accent-hover: #3b82f6;
+      }
+
+      body {
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        transition: background 0.3s, color 0.3s;
+      }
+
+      #cropper-container {
+        width: 100%;
+        height: 600px;
+        overflow: hidden;
+        transform: translateZ(0);
+        backface-visibility: hidden;
+        perspective: 1000px;
+        background: var(--bg-tertiary);
+        border-radius: 12px;
+      }
+
+      .cropper-container {
+        font-size: 0;
+        width: 100%;
+        height: 100%;
+        transform: translateZ(0);
+      }
+
+      .cropper-canvas,
+      .cropper-canvas > img {
+        transform: translateZ(0);
+        backface-visibility: hidden;
+      }
+
+      .cropper-crop-box,
+      .cropper-view-box {
+        transform: translateZ(0);
+        backface-visibility: hidden;
+      }
+
+      .cropper-line,
+      .cropper-point {
+        transform: translateZ(0);
+      }
+
+      .grid-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 1;
+      }
+
+      .grid-line {
+        position: absolute;
+        background: rgba(255, 255, 255, 0.5);
+      }
+
+      .grid-line.horizontal {
+        width: 100%;
+        height: 1px;
+      }
+
+      .grid-line.vertical {
+        width: 1px;
+        height: 100%;
+      }
+
+      .comparison-slider {
+        position: relative;
+        width: 100%;
+        height: 400px;
+        overflow: hidden;
+        border-radius: 12px;
+      }
+
+      .comparison-slider img {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+
+      .comparison-slider .after {
+        clip-path: inset(0 50% 0 0);
+      }
+
+      .comparison-handle {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        width: 4px;
+        height: 100%;
+        background: var(--accent-color);
+        cursor: ew-resize;
+        transform: translateX(-50%);
+      }
+
+      .comparison-handle::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 40px;
+        height: 40px;
+        background: var(--accent-color);
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+      }
+
+      .history-thumbnail {
+        width: 80px;
+        height: 80px;
+        object-fit: cover;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+        border: 2px solid transparent;
+      }
+
+      .history-thumbnail:hover {
+        transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      }
+
+      .history-thumbnail.active {
+        border-color: var(--accent-color);
+      }
+
+      .card {
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 1.5rem;
+        transition: all 0.3s;
+      }
+
+      .btn {
+        padding: 0.625rem 1.25rem;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.2s;
+        cursor: pointer;
+        border: none;
+        outline: none;
+      }
+
+      .btn-primary {
+        background: var(--accent-color);
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background: var(--accent-hover);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+      }
+
+      .btn-secondary {
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
+      }
+
+      .btn-secondary:hover {
+        background: var(--border-color);
+      }
+
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .btn-primary:disabled:hover {
+        background: var(--accent-color);
+        transform: none;
+        box-shadow: none;
+      }
+
+      .btn-secondary:disabled:hover {
+        background: var(--bg-tertiary);
+      }
+
+      .slider {
+        -webkit-appearance: none;
+        width: 100%;
+        height: 6px;
+        border-radius: 3px;
+        background: var(--bg-tertiary);
+        outline: none;
+      }
+
+      .slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: var(--accent-color);
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .slider::-webkit-slider-thumb:hover {
+        transform: scale(1.2);
+        box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.1);
+      }
+
+      .slider::-moz-range-thumb {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: var(--accent-color);
+        cursor: pointer;
+        border: none;
+      }
+
+      .tab-button {
+        padding: 0.75rem 1.5rem;
+        border-bottom: 2px solid transparent;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all 0.2s;
+        font-weight: 500;
+      }
+
+      .tab-button:hover {
+        color: var(--text-primary);
+      }
+
+      .tab-button.active {
+        color: var(--accent-color);
+        border-bottom-color: var(--accent-color);
+      }
+
+      .input-field {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+        padding: 0.625rem 1rem;
+        border-radius: 8px;
+        outline: none;
+        transition: all 0.2s;
+      }
+
+      .input-field:focus {
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      }
+
+      .tooltip {
+        position: relative;
+      }
+
+      .tooltip::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%) translateY(-8px);
+        background: rgba(0, 0, 0, 0.9);
+        color: white;
+        padding: 0.5rem 0.75rem;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        white-space: nowrap;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s;
+      }
+
+      .tooltip:hover::after {
+        opacity: 1;
+      }
+
+      .scrollbar-thin::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+
+      .scrollbar-thin::-webkit-scrollbar-track {
+        background: var(--bg-tertiary);
+        border-radius: 3px;
+      }
+
+      .scrollbar-thin::-webkit-scrollbar-thumb {
+        background: var(--border-color);
+        border-radius: 3px;
+      }
+
+      .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+        background: var(--text-secondary);
+      }
+
+      #tabs-container {
+        scroll-behavior: smooth;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      #tabs-container::-webkit-scrollbar {
+        height: 4px;
+      }
+
+      #tabs-container::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      #tabs-container::-webkit-scrollbar-thumb {
+        background: var(--border-color);
+        border-radius: 2px;
+      }
+
+      #tabs-container::-webkit-scrollbar-thumb:hover {
+        background: var(--text-secondary);
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .fade-in {
+        animation: fadeIn 0.3s ease-out;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="min-h-screen py-6 px-4">
+      <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <header class="mb-8 flex items-start justify-between">
+          <div>
+            <h1 class="text-4xl font-bold mb-2">🎨 Image Tools</h1>
+            <p style="color: var(--text-secondary)">
+              เครื่องมือจัดการภาพแบบมืออาชีพ
+            </p>
+          </div>
+          <button
+            id="dark-mode-toggle"
+            class="btn btn-secondary tooltip"
+            data-tooltip="สลับโหมด"
+          >
+            <span id="dark-mode-icon">🌙</span>
+          </button>
+        </header>
+
+        <!-- Main Content -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <!-- Left Sidebar -->
+          <aside class="lg:col-span-3">
+            <div class="card space-y-6">
+              <h2 class="text-xl font-semibold">⚙️ เครื่องมือ</h2>
+
+              <!-- Upload Section -->
+              <div id="upload-section">
+                <label class="block">
+                  <div
+                    class="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition hover:border-blue-500"
+                    style="border-color: var(--border-color)"
+                  >
+                    <input
+                      type="file"
+                      id="image-input"
+                      accept="image/*"
+                      class="hidden"
+                    />
+                    <div class="text-4xl mb-2">📤</div>
+                    <div class="font-semibold mb-1">อัปโหลดภาพ</div>
+                    <div class="text-sm" style="color: var(--text-secondary)">
+                      หรือลากมาวาง
+                    </div>
+                  </div>
+                </label>
+
+                <div class="mt-4">
+                  <input
+                    type="text"
+                    id="image-url-input"
+                    placeholder="หรือใส่ URL ภาพ"
+                    class="input-field w-full mb-4"
+                  />
+                  <button id="load-url-btn" class="btn btn-primary w-full">
+                    โหลดจาก URL
+                  </button>
+                </div>
+
+                <!-- Batch Upload -->
+                <div
+                  class="mt-4 pt-4"
+                  style="border-top: 1px solid var(--border-color)"
+                >
+                  <input
+                    type="file"
+                    id="batch-input"
+                    accept="image/*"
+                    multiple
+                    class="hidden"
+                  />
+                  <label for="batch-input" class="block">
+                    <div
+                      class="btn btn-secondary w-full cursor-pointer text-center"
+                    >
+                      📁 อัปโหลดหลายไฟล์
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Batch List -->
+              <div id="batch-section" class="card hidden">
+                <h3 class="font-semibold mb-2">📋 รายการภาพ</h3>
+                <div
+                  id="batch-list"
+                  class="space-y-1 max-h-60 overflow-y-auto scrollbar-thin"
+                ></div>
+              </div>
+
+              <!-- Tools Section (Hidden initially) -->
+              <div id="tools-section" class="hidden space-y-4">
+                <!-- Aspect Ratio -->
+                <div>
+                  <label class="block font-semibold mb-2">📐 สัดส่วน</label>
+                  <div class="grid grid-cols-2 gap-2">
+                    <button
+                      class="aspect-ratio-btn btn btn-secondary text-sm"
+                      data-ratio="NaN"
+                    >
+                      อิสระ
+                    </button>
+                    <button
+                      class="aspect-ratio-btn btn btn-secondary text-sm"
+                      data-ratio="1"
+                    >
+                      1:1
+                    </button>
+                    <button
+                      class="aspect-ratio-btn btn btn-secondary text-sm"
+                      data-ratio="1.778"
+                    >
+                      16:9
+                    </button>
+                    <button
+                      class="aspect-ratio-btn btn btn-secondary text-sm"
+                      data-ratio="0.5625"
+                    >
+                      9:16
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Grid Overlay -->
+                <div>
+                  <label class="flex items-center justify-between">
+                    <span class="font-semibold">📏 Grid Overlay</span>
+                    <input type="checkbox" id="grid-toggle" class="w-5 h-5" />
+                  </label>
+                </div>
+
+                <!-- Rotation -->
+                <div>
+                  <label class="block font-semibold mb-2">🔄 หมุน</label>
+                  <div class="flex gap-2 mb-2">
+                    <input
+                      type="number"
+                      id="rotate-input"
+                      value="0"
+                      min="-180"
+                      max="180"
+                      class="input-field flex-1 text-center"
+                    />
+                    <span class="flex items-center">°</span>
+                  </div>
+                  <input
+                    type="range"
+                    id="rotate-slider"
+                    min="-180"
+                    max="180"
+                    value="0"
+                    class="slider"
+                  />
+                </div>
+
+                <!-- Zoom -->
+                <div>
+                  <label class="block font-semibold mb-2">
+                    🔍 ซูม <span id="zoom-value">10</span>%
+                  </label>
+                  <input
+                    type="range"
+                    id="zoom-slider"
+                    min="0.1"
+                    max="3"
+                    step="0.1"
+                    value="0.1"
+                    class="slider"
+                  />
+                </div>
+
+                <!-- Flip -->
+                <div>
+                  <label class="block font-semibold mb-2">↔️ พลิก</label>
+                  <div class="grid grid-cols-2 gap-2">
+                    <button
+                      id="flip-horizontal-btn"
+                      class="btn btn-secondary text-sm"
+                    >
+                      ↔️ แนวนอน
+                    </button>
+                    <button
+                      id="flip-vertical-btn"
+                      class="btn btn-secondary text-sm"
+                    >
+                      ↕️ แนวตั้ง
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          <!-- Main Editor -->
+          <main class="lg:col-span-6">
+            <div class="card">
+              <!-- Tabs -->
+              <div
+                id="tabs-container"
+                class="flex border-b whitespace-nowrap overflow-x-auto mb-6"
+                style="border-color: var(--border-color)"
+              >
+                <button class="tab-button active" data-tab="editor">
+                  ✂️ ตัดภาพ
+                </button>
+                <button class="tab-button" data-tab="filters">
+                  🎨 ฟิลเตอร์
+                </button>
+                <button class="tab-button" data-tab="watermark">
+                  💧 ลายน้ำ
+                </button>
+                <button class="tab-button" data-tab="compressor">
+                  🗜️ บีบอัด
+                </button>
+                <button class="tab-button" data-tab="compare">
+                  🔄 เปรียบเทียบ
+                </button>
+              </div>
+
+              <!-- Editor Tab -->
+              <div id="tab-editor" class="tab-content">
+                <div id="cropper-container">
+                  <img
+                    id="crop-image"
+                    src=""
+                    alt=""
+                    style="max-width: 100%; max-height: 100%"
+                  />
+                  <div id="grid-overlay" class="grid-overlay hidden"></div>
+                </div>
+
+                <!-- Crop Info -->
+                <div
+                  id="crop-info"
+                  class="mt-4 p-3 rounded-lg hidden"
+                  style="background: var(--bg-secondary)"
+                >
+                  <div class="text-sm" style="color: var(--text-secondary)">
+                    <span id="crop-dimensions">0 × 0 px</span> •
+                    <span id="crop-position">(0, 0)</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Filters Tab -->
+              <div id="tab-filters" class="tab-content hidden">
+                <div class="space-y-4">
+                  <div>
+                    <label class="block font-semibold mb-2">
+                      ☀️ ความสว่าง <span id="brightness-value">100</span>%
+                    </label>
+                    <input
+                      type="range"
+                      id="brightness-slider"
+                      min="0"
+                      max="200"
+                      value="100"
+                      class="slider"
+                    />
+                  </div>
+
+                  <div>
+                    <label class="block font-semibold mb-2">
+                      🔆 ความคมชัด <span id="contrast-value">100</span>%
+                    </label>
+                    <input
+                      type="range"
+                      id="contrast-slider"
+                      min="0"
+                      max="200"
+                      value="100"
+                      class="slider"
+                    />
+                  </div>
+
+                  <div>
+                    <label class="block font-semibold mb-2">
+                      🎨 ความอิ่มสี <span id="saturation-value">100</span>%
+                    </label>
+                    <input
+                      type="range"
+                      id="saturation-slider"
+                      min="0"
+                      max="200"
+                      value="100"
+                      class="slider"
+                    />
+                  </div>
+
+                  <div>
+                    <label class="block font-semibold mb-2">
+                      🌈 Hue <span id="hue-value">0</span>°
+                    </label>
+                    <input
+                      type="range"
+                      id="hue-slider"
+                      min="0"
+                      max="360"
+                      value="0"
+                      class="slider"
+                    />
+                  </div>
+
+                  <div>
+                    <label class="block font-semibold mb-2">
+                      🌫️ Blur <span id="blur-value">0</span>px
+                    </label>
+                    <input
+                      type="range"
+                      id="blur-slider"
+                      min="0"
+                      max="20"
+                      value="0"
+                      class="slider"
+                    />
+                  </div>
+
+                  <div class="grid grid-cols-2 gap-2 pt-4">
+                    <button id="grayscale-btn" class="btn btn-secondary">
+                      ⚫ Grayscale
+                    </button>
+                    <button id="sepia-btn" class="btn btn-secondary">
+                      🟤 Sepia
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Watermark Tab -->
+              <div id="tab-watermark" class="tab-content hidden">
+                <div class="space-y-4">
+                  <div>
+                    <label class="block font-semibold mb-2">💬 ข้อความ</label>
+                    <input
+                      type="text"
+                      id="watermark-text"
+                      placeholder="ใส่ข้อความลายน้ำ"
+                      class="input-field w-full"
+                    />
+                  </div>
+
+                  <div class="grid grid-cols-2 gap-4">
+                    <div>
+                      <label class="block font-semibold mb-2">📏 ขนาด</label>
+                      <input
+                        type="number"
+                        id="watermark-size"
+                        value="24"
+                        min="12"
+                        max="100"
+                        class="input-field w-full"
+                      />
+                    </div>
+
+                    <div>
+                      <label class="block font-semibold mb-2">🎨 สี</label>
+                      <input
+                        type="color"
+                        id="watermark-color"
+                        value="#ffffff"
+                        class="input-field w-full h-10"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label class="block font-semibold mb-2">
+                      👁️ ความโปร่งใส
+                      <span id="watermark-opacity-value">50</span>%
+                    </label>
+                    <input
+                      type="range"
+                      id="watermark-opacity"
+                      min="0"
+                      max="100"
+                      value="50"
+                      class="slider"
+                    />
+                  </div>
+
+                  <div class="grid grid-cols-2 gap-3">
+                    <div>
+                      <label class="block font-semibold mb-2"> 🔤 ฟอนต์ </label>
+                      <select id="watermark-font" class="input-field w-full">
+                        <option value="Arial">Arial</option>
+                        <option value="Noto Sans Thai">Noto Sans Thai</option>
+                        <option value="Roboto">Roboto</option>
+                        <option value="Open Sans">Open Sans</option>
+                        <option value="Playfair Display">
+                          Playfair Display
+                        </option>
+                        <option value="Montserrat">Montserrat</option>
+                        <option value="Lato">Lato</option>
+                        <option value="Poppins">Poppins</option>
+                        <option value="Inter">Inter</option>
+                        <option value="Raleway">Raleway</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label class="block font-semibold mb-2">
+                        🔤 ตัวหนา
+                      </label>
+                      <select
+                        id="watermark-font-weight"
+                        class="input-field w-full"
+                      >
+                        <option value="normal">Normal</option>
+                        <option value="bold">Bold</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label class="block font-semibold mb-2">
+                      🔄 หมุน
+                      <span id="watermark-rotate-value">0</span>°
+                    </label>
+                    <input
+                      type="range"
+                      id="watermark-rotate"
+                      min="-180"
+                      max="180"
+                      value="0"
+                      class="slider"
+                    />
+                  </div>
+
+                  <div class="grid grid-cols-2 gap-3">
+                    <div>
+                      <label class="block font-semibold mb-2">
+                        ↔️ X Offset
+                        <span id="watermark-offset-x-value">0</span>px
+                      </label>
+                      <input
+                        type="range"
+                        id="watermark-offset-x"
+                        min="-200"
+                        max="200"
+                        value="0"
+                        class="slider"
+                      />
+                    </div>
+
+                    <div>
+                      <label class="block font-semibold mb-2">
+                        ↕️ Y Offset
+                        <span id="watermark-offset-y-value">0</span>px
+                      </label>
+                      <input
+                        type="range"
+                        id="watermark-offset-y"
+                        min="-200"
+                        max="200"
+                        value="0"
+                        class="slider"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="watermark-pattern-mode"
+                      class="w-4 h-4"
+                    />
+                    <label for="watermark-pattern-mode" class="font-semibold">
+                      🔁 โหมด Pattern (วนซ้ำทั้งรูป)
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Compressor Tab -->
+              <div id="tab-compressor" class="tab-content hidden">
+                <div class="space-y-6">
+                  <!-- Preview Area -->
+                  <div
+                    class="rounded-lg p-4 flex items-center justify-center min-h-[400px]"
+                    style="background: var(--bg-secondary)"
+                  >
+                    <img
+                      id="compressor-preview"
+                      class="max-w-full max-h-[400px] object-contain hidden"
+                      alt="Compressed Preview"
+                    />
+                    <div
+                      id="compressor-placeholder"
+                      class="text-center"
+                      style="color: var(--text-secondary)"
+                    >
+                      <div class="text-6xl mb-3">🗜️</div>
+                      <div class="text-lg font-semibold mb-2">บีบอัดรูปภาพ</div>
+                      <div class="text-sm">ตัวอย่างจะแสดงที่นี่</div>
+                    </div>
+                  </div>
+
+                  <!-- Compression Settings -->
+                  <div class="space-y-4">
+                    <div>
+                      <label class="block font-semibold mb-2">
+                        📊 คุณภาพ
+                        <span id="compressor-quality-value">100</span>%
+                      </label>
+                      <input
+                        type="range"
+                        id="compressor-quality-slider"
+                        min="1"
+                        max="100"
+                        value="100"
+                        class="slider"
+                      />
+                      <div
+                        class="text-xs mt-2"
+                        style="color: var(--text-secondary)"
+                      >
+                        ลดคุณภาพเพื่อลดขนาดไฟล์
+                      </div>
+                    </div>
+
+                    <div>
+                      <label class="block font-semibold mb-2">📁 รูปแบบ</label>
+                      <select id="compressor-format" class="input-field w-full">
+                        <option value="jpeg">JPEG</option>
+                        <option value="png">PNG</option>
+                        <option value="webp">WebP</option>
+                      </select>
+                    </div>
+
+                    <!-- File Size Info -->
+                    <div
+                      id="compressor-info"
+                      class="p-4 rounded-lg hidden"
+                      style="background: var(--bg-secondary)"
+                    >
+                      <div class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                          <span style="color: var(--text-secondary)">
+                            ขนาดต้นฉบับ:
+                          </span>
+                          <span
+                            id="compressor-original-size"
+                            class="font-semibold"
+                          >
+                            -
+                          </span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span style="color: var(--text-secondary)">
+                            ขนาดหลังบีบอัด:
+                          </span>
+                          <span
+                            id="compressor-compressed-size"
+                            class="font-semibold"
+                          >
+                            -
+                          </span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span style="color: var(--text-secondary)">
+                            ลดลง:
+                          </span>
+                          <span
+                            id="compressor-reduction"
+                            class="font-semibold"
+                            style="color: var(--accent-color)"
+                          >
+                            -
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="grid grid-cols-2 gap-3">
+                      <button
+                        id="compressor-apply-btn"
+                        class="btn btn-primary"
+                        disabled
+                      >
+                        ✅ ใช้งาน
+                      </button>
+                      <button
+                        id="compressor-reset-btn"
+                        class="btn btn-secondary"
+                        disabled
+                      >
+                        🔄 รีเซ็ต
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Compare Tab -->
+              <div id="tab-compare" class="tab-content hidden">
+                <div id="comparison-slider" class="comparison-slider">
+                  <img id="compare-before" src="" alt="Before" class="before" />
+                  <img id="compare-after" src="" alt="After" class="after" />
+                  <div id="comparison-handle" class="comparison-handle"></div>
+                </div>
+              </div>
+            </div>
+          </main>
+
+          <!-- Right Sidebar -->
+          <aside class="lg:col-span-3">
+            <div class="card space-y-6">
+              <h2 class="text-xl font-semibold">🎯 ผลลัพธ์</h2>
+
+              <!-- Preview -->
+              <div>
+                <label class="block font-semibold mb-2">👁️ ตัวอย่าง</label>
+                <div
+                  class="rounded-lg p-4 flex items-center justify-center min-h-[200px]"
+                  style="background: var(--bg-secondary)"
+                >
+                  <img
+                    id="preview-image"
+                    class="max-w-full max-h-[200px] object-contain hidden"
+                    alt="Preview"
+                  />
+                  <div
+                    id="preview-placeholder"
+                    class="text-center"
+                    style="color: var(--text-secondary)"
+                  >
+                    <div class="text-4xl mb-2">🖼️</div>
+                    <div class="text-sm">ตัวอย่างจะแสดงที่นี่</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Export Settings -->
+              <div>
+                <label class="block font-semibold mb-2">💾 การส่งออก</label>
+                <div class="space-y-3">
+                  <div>
+                    <label
+                      class="block text-sm mb-1"
+                      style="color: var(--text-secondary)"
+                    >
+                      รูปแบบ
+                    </label>
+                    <select id="export-format" class="input-field w-full">
+                      <option value="jpeg">JPEG</option>
+                      <option value="png">PNG</option>
+                      <option value="webp">WebP</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label
+                      class="block text-sm mb-1"
+                      style="color: var(--text-secondary)"
+                    >
+                      คุณภาพ <span id="quality-value">100</span>%
+                    </label>
+                    <input
+                      type="range"
+                      id="quality-slider"
+                      min="10"
+                      max="100"
+                      value="100"
+                      class="slider"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <!-- Action Buttons -->
+              <div class="space-y-2">
+                <div class="grid grid-cols-2 gap-2">
+                  <button
+                    id="undo-btn"
+                    class="btn btn-secondary tooltip"
+                    data-tooltip="Ctrl+Z"
+                    disabled
+                  >
+                    ↶ Undo
+                  </button>
+                  <button
+                    id="redo-btn"
+                    class="btn btn-secondary tooltip"
+                    data-tooltip="Ctrl+Y"
+                    disabled
+                  >
+                    ↷ Redo
+                  </button>
+                </div>
+
+                <button
+                  id="reset-btn"
+                  class="btn btn-secondary w-full"
+                  disabled
+                >
+                  🔄 รีเซ็ต
+                </button>
+
+                <button
+                  id="download-btn"
+                  class="btn btn-primary w-full"
+                  disabled
+                >
+                  ⬇️ ดาวน์โหลด
+                </button>
+
+                <button id="copy-btn" class="btn btn-primary w-full" disabled>
+                  📋 คัดลอก
+                </button>
+
+                <!-- Progress Bar -->
+                <div id="progress-container" class="hidden">
+                  <div class="text-sm mb-2 text-center" id="progress-text">
+                    กำลังประมวลผล...
+                  </div>
+                  <div
+                    class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4 overflow-hidden"
+                  >
+                    <div
+                      id="progress-bar"
+                      class="h-full transition-all duration-300"
+                      style="width: 0%; background: var(--accent-color)"
+                    ></div>
+                  </div>
+                </div>
+
+                <button
+                  id="batch-download-btn"
+                  class="btn btn-primary w-full"
+                  disabled
+                >
+                  📦 ดาวน์โหลด ZIP
+                </button>
+              </div>
+
+              <!-- Keyboard Shortcuts -->
+              <div class="text-xs" style="color: var(--text-secondary)">
+                <div class="font-semibold mb-2">⌨️ Keyboard Shortcuts</div>
+                <div class="space-y-1">
+                  <div>↑↓←→ : ปรับ crop box</div>
+                  <div>Ctrl+Z : Undo</div>
+                  <div>Ctrl+Y : Redo</div>
+                  <div>Ctrl+V : Paste image</div>
+                </div>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </div>
+
+    <!-- Load Modules -->
+    <script src="js/modules/core.js"></script>
+    <script src="js/modules/cropper.js"></script>
+    <script src="js/modules/filters.js"></script>
+    <script src="js/modules/history.js"></script>
+    <script src="js/modules/watermark.js"></script>
+    <script src="js/modules/compressor.js"></script>
+    <script src="js/modules/comparison.js"></script>
+    <script src="js/modules/keyboard.js"></script>
+    <script src="js/modules/batch.js"></script>
+    <script src="js/ImageApp.js"></script>
+  </body>
+</html>
