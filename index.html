@@ -1,0 +1,2390 @@
+﻿<!doctype html>
+<html lang="th" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#22c55e" />
+    <meta name="application-name" content="Image Tools" />
+    <meta name="apple-mobile-web-app-title" content="Image Tools" />
+    <title>Image Tools - เครื่องมือจัดการภาพ</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link
+      rel="icon"
+      href="./image/icon-32.png"
+      sizes="32x32"
+      type="image/png"
+    />
+    <link rel="apple-touch-icon" href="./image/icon-192.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.3"></script>
+    <script src="https://unpkg.com/lucide@1.61.0"></script>
+    <script src="https://unpkg.com/cropperjs@2.3.1/dist/cropper.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.2/jszip.min.js"></script>
+    <style type="text/tailwindcss">
+      @custom-variant dark (&:where(.dark, .dark *));
+      @theme {
+        --font-sans: 'Inter', 'Noto Sans Thai', sans-serif;
+      }
+      @theme inline {
+        --radius-lg: 0.5rem;
+      }
+    </style>
+    <style>
+      * {
+        font-family: 'Inter', 'Noto Sans Thai', sans-serif;
+      }
+      :root {
+        --bg-primary: #ffffff;
+        --bg-secondary: #f5f5f5;
+        --bg-tertiary: #f0f0f0;
+        --bg-canvas: #e8e8e8;
+        --bg-glass: rgba(255, 255, 255, 0.8);
+        --border-color: #e5e5e5;
+        --border-strong: #a3a3a3;
+        --text-primary: #171717;
+        --text-secondary: #404040;
+        --text-muted: #666666;
+        --accent: #15803d;
+        --accent-hover: #166534;
+        --accent-light: #166534;
+        --accent-dark: #166534;
+        --on-accent: #ffffff;
+        --accent-text: #166534;
+        --accent-subtle: rgba(21, 128, 61, 0.1);
+        --success: #15803d;
+        --warning: #92400e;
+        --warning-subtle: rgba(146, 64, 14, 0.1);
+        --danger: #b91c1c;
+        --radius-sm: 6px;
+        --radius-md: 8px;
+        --radius-lg: 12px;
+        --mobile-nav-offset: 70px;
+        --logo-gradient: linear-gradient(
+          135deg,
+          #4ade80 0%,
+          #22c55e 50%,
+          #15803d 100%
+        );
+      }
+      .dark {
+        --bg-primary: #171717;
+        --bg-secondary: #0f0f0f;
+        --bg-tertiary: #222222;
+        --bg-canvas: #0a0a0a;
+        --bg-glass: rgba(15, 15, 15, 0.8);
+        --border-color: #2a2a2a;
+        --border-strong: #525252;
+        --text-primary: #f5f5f5;
+        --text-secondary: #a3a3a3;
+        --text-muted: #8a8a8a;
+        --accent: #22c55e;
+        --accent-hover: #4ade80;
+        --accent-light: #4ade80;
+        --accent-dark: #4ade80;
+        --on-accent: #052e16;
+        --accent-text: #4ade80;
+        --accent-subtle: rgba(34, 197, 94, 0.14);
+        --success: #22c55e;
+        --warning: #fbbf24;
+        --warning-subtle: rgba(251, 191, 36, 0.14);
+        --danger: #f87171;
+      }
+      body {
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+      }
+      .glass {
+        background: var(--bg-glass);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+      }
+      #cropper-container {
+        width: 100%;
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
+        background: var(--bg-canvas);
+        border-radius: var(--radius-lg);
+        position: relative;
+      }
+      #crop-image {
+        display: block;
+        max-width: 100%;
+        max-height: 100%;
+      }
+      .cropper-container {
+        font-size: 0;
+        width: 100% !important;
+        height: 100% !important;
+        max-width: 100% !important;
+        max-height: 100% !important;
+      }
+      .cropper-wrap-box,
+      .cropper-canvas,
+      .cropper-drag-box,
+      .cropper-crop-box {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+      }
+      .cropper-canvas {
+        background-color: transparent;
+      }
+      .cropper-canvas > img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        image-orientation: 0deg;
+        object-fit: contain;
+      }
+      cropper-canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+      cropper-image,
+      cropper-selection {
+        display: block;
+      }
+      .tab-content {
+        height: 100%;
+      }
+      .tab-content:not(#tab-editor) {
+        overflow-y: auto;
+      }
+      #tab-editor {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+      }
+      .main-content {
+        position: relative;
+      }
+      #tab-editor.hidden {
+        display: flex !important;
+        visibility: hidden;
+      }
+      .tab-content:not(#tab-editor):not(.hidden) {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        padding: inherit;
+        background: var(--bg-secondary);
+      }
+      .grid-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 1;
+      }
+      .grid-line {
+        position: absolute;
+        background: rgba(255, 255, 255, 0.4);
+      }
+      .grid-line.horizontal {
+        width: 100%;
+        height: 1px;
+      }
+      .grid-line.vertical {
+        width: 1px;
+        height: 100%;
+      }
+      .comparison-slider {
+        position: relative;
+        width: 100%;
+        height: 400px;
+        overflow: hidden;
+        border-radius: var(--radius-lg);
+        background: var(--bg-canvas);
+      }
+      .comparison-slider img {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+      .comparison-slider .after {
+        clip-path: inset(0 50% 0 0);
+      }
+      .comparison-handle {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        width: 2px;
+        height: 100%;
+        background: var(--accent);
+        cursor: ew-resize;
+        transform: translateX(-50%);
+      }
+      .comparison-handle::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 36px;
+        height: 36px;
+        background: var(--bg-primary);
+        border: 1px solid var(--accent);
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+      }
+      .comparison-handle::after {
+        content: '↔';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: var(--text-primary);
+        font-size: 16px;
+        font-weight: 600;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 36px;
+        padding: 6px 14px;
+        border-radius: var(--radius-md);
+        font-weight: 500;
+        font-size: 14px;
+        cursor: pointer;
+        border: 1px solid transparent;
+      }
+      .btn-primary {
+        background: var(--accent);
+        color: var(--on-accent);
+      }
+      .btn-primary:hover:not(:disabled) {
+        background: var(--accent-hover);
+      }
+      .btn-secondary {
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
+        border-color: var(--border-color);
+      }
+      .btn-secondary:hover:not(:disabled):not(.active) {
+        background: var(--border-color);
+      }
+      .btn-ghost {
+        background: transparent;
+        color: var(--text-secondary);
+      }
+      .btn-ghost:hover:not(:disabled) {
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
+      }
+      .btn-danger-ghost {
+        background: transparent;
+        color: var(--danger);
+      }
+      .btn-danger-ghost:hover:not(:disabled) {
+        background: var(--bg-tertiary);
+      }
+      .btn-icon {
+        width: 36px;
+        height: 36px;
+        padding: 0;
+        border-radius: var(--radius-md);
+      }
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      button:focus-visible,
+      a:focus-visible,
+      input:focus-visible,
+      select:focus-visible,
+      [tabindex]:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+      .slider {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 100%;
+        height: 4px;
+        border-radius: 999px;
+        background: var(--border-strong);
+      }
+      .slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        box-sizing: border-box;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: var(--accent);
+        border: 2px solid var(--bg-primary);
+        cursor: pointer;
+        transition: transform 0.2s;
+      }
+      .slider::-webkit-slider-thumb:hover {
+        transform: scale(1.15);
+      }
+      .slider::-moz-range-thumb {
+        box-sizing: border-box;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: var(--accent);
+        border: 2px solid var(--bg-primary);
+        cursor: pointer;
+      }
+      .input-field {
+        width: 100%;
+        min-height: 36px;
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-strong);
+        color: var(--text-primary);
+        padding: 6px 12px;
+        border-radius: var(--radius-md);
+        font-size: 14px;
+      }
+      .input-field:focus {
+        border-color: var(--accent);
+      }
+      .input-field::placeholder {
+        color: var(--text-muted);
+      }
+      input[type='checkbox'] {
+        accent-color: var(--accent);
+      }
+      .card {
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        padding: 20px;
+      }
+      .tool-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 16px 12px;
+        border-radius: var(--radius-md);
+        background: var(--bg-tertiary);
+        border: 1px solid transparent;
+        color: var(--text-secondary);
+        cursor: pointer;
+        min-width: 80px;
+      }
+      .tool-btn:hover:not(.active) {
+        background: var(--bg-primary);
+        border-color: var(--border-color);
+        color: var(--text-primary);
+      }
+      .tool-btn .icon {
+        font-size: 24px;
+      }
+      .tool-btn .label {
+        font-size: 12px;
+        font-weight: 500;
+      }
+      .tab-btn {
+        padding: 8px 16px;
+        border-radius: var(--radius-md);
+        font-weight: 500;
+        font-size: 14px;
+        color: var(--text-secondary);
+        background: transparent;
+        border: 1px solid transparent;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .tab-btn:hover:not(.active) {
+        color: var(--text-primary);
+        background: var(--bg-tertiary);
+      }
+      .upload-zone {
+        border: 1px dashed var(--border-strong);
+        border-radius: var(--radius-lg);
+        padding: 48px 24px;
+        text-align: center;
+        cursor: pointer;
+        background: var(--bg-tertiary);
+      }
+      .upload-zone:hover,
+      .upload-zone.dragover {
+        border-color: var(--accent);
+        background: var(--accent-subtle);
+      }
+      label:has(> #image-input:focus-visible) .upload-zone,
+      #batch-input:focus-visible + label {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+      .sidebar {
+        width: 320px;
+        flex-shrink: 0;
+        overflow-x: hidden;
+      }
+      .sidebar-section {
+        margin-bottom: 24px;
+      }
+      .sidebar-title {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-muted);
+        margin-bottom: 12px;
+      }
+      .scrollbar-thin::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      .scrollbar-thin::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .scrollbar-thin::-webkit-scrollbar-thumb {
+        background: var(--border-strong);
+        border-radius: 999px;
+      }
+      .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+        background: var(--text-muted);
+      }
+      .tooltip {
+        position: relative;
+      }
+      .tooltip::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        bottom: calc(100% + 8px);
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        padding: 8px 12px;
+        border-radius: var(--radius-sm);
+        font-size: 12px;
+        white-space: nowrap;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s;
+        border: 1px solid var(--border-color);
+        z-index: 9999;
+      }
+      .tooltip-bottom::after {
+        bottom: auto;
+        top: calc(100% + 8px);
+      }
+      .tooltip-left::after {
+        left: auto;
+        right: 0;
+        transform: translateX(0);
+      }
+      .tooltip-right::after {
+        left: 0;
+        transform: translateX(0);
+      }
+      .tooltip:hover::after {
+        opacity: 1;
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 500;
+      }
+      .badge-success {
+        background: var(--accent-subtle);
+        color: var(--accent-text);
+      }
+      .badge-warning {
+        background: var(--warning-subtle);
+        color: var(--warning);
+      }
+      .divider {
+        height: 1px;
+        background: var(--border-color);
+        margin: 16px 0;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateX(-20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+      .fade-in {
+        animation: fadeIn 0.3s ease-out;
+      }
+      .slide-in {
+        animation: slideIn 0.3s ease-out;
+      }
+      .hidden {
+        display: none !important;
+      }
+      .icon-16 {
+        width: 16px;
+        height: 16px;
+        vertical-align: middle;
+      }
+      .icon-18 {
+        width: 18px;
+        height: 18px;
+      }
+      .icon-20 {
+        width: 20px;
+        height: 20px;
+      }
+      .icon-24 {
+        width: 24px;
+        height: 24px;
+      }
+      .icon-32 {
+        width: 32px;
+        height: 32px;
+      }
+      .icon-40 {
+        width: 40px;
+        height: 40px;
+      }
+      .icon-48 {
+        width: 48px;
+        height: 48px;
+      }
+      label:has(> [data-lucide]) {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .btn > svg {
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+      }
+      .btn-icon > svg {
+        width: 20px;
+        height: 20px;
+      }
+      .tab-btn svg {
+        width: 18px;
+        height: 18px;
+      }
+      .aspect-btn {
+        padding: 8px 16px;
+        border-radius: var(--radius-sm);
+        font-size: 13px;
+        font-weight: 500;
+        background: var(--bg-tertiary);
+        color: var(--text-secondary);
+        border: 1px solid transparent;
+        cursor: pointer;
+      }
+      .aspect-btn:hover:not(.active) {
+        background: var(--bg-primary);
+        border-color: var(--border-color);
+      }
+      .value-chip {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: var(--radius-sm);
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
+        font-size: 13px;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+      }
+      .value-text {
+        color: var(--text-primary);
+        font-size: 13px;
+        font-weight: 500;
+        font-variant-numeric: tabular-nums;
+      }
+      .page-header {
+        margin-bottom: 24px;
+      }
+      .page-header-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 18px;
+        font-weight: 600;
+      }
+      .page-header-title svg {
+        color: var(--text-muted);
+        flex-shrink: 0;
+      }
+      .page-header-description {
+        margin-top: 4px;
+        font-size: 14px;
+        color: var(--text-muted);
+      }
+      .header-logo {
+        background: var(--logo-gradient);
+        color: #ffffff;
+        border-radius: var(--radius-md);
+      }
+      .batch-item {
+        display: block;
+        width: 100%;
+        text-align: left;
+        padding: 10px 12px;
+        font-size: 13px;
+        border-radius: var(--radius-sm);
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
+        border: 1px solid transparent;
+        cursor: pointer;
+      }
+      .batch-item:hover:not(.active) {
+        background: var(--border-color);
+      }
+      kbd {
+        font-family:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          'Liberation Mono', 'Courier New', monospace;
+        border-radius: var(--radius-sm);
+        color: var(--text-secondary);
+      }
+      .tab-btn.active,
+      .aspect-btn.active,
+      .tool-btn.active,
+      .batch-item.active,
+      .btn-secondary.active {
+        background: var(--accent-subtle);
+        color: var(--accent-text);
+        border-color: var(--accent);
+      }
+      .batch-item.active {
+        font-weight: 500;
+      }
+      .batch-item-badge {
+        margin-left: 8px;
+        padding: 2px 8px;
+        font-size: 11px;
+        vertical-align: middle;
+      }
+      .progress-ring {
+        transform: rotate(-90deg);
+      }
+      .progress-ring-circle {
+        transition: stroke-dashoffset 0.3s;
+        transform-origin: 50% 50%;
+      }
+      @media (max-width: 1024px) {
+        .sidebar {
+          width: 280px;
+        }
+      }
+      @media (max-width: 768px) {
+        .sidebar {
+          display: none;
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          width: 100%;
+          z-index: 1000;
+          background: var(--bg-primary);
+          overflow-y: auto;
+          animation: slideUp 0.3s ease;
+        }
+        @keyframes slideUp {
+          from {
+            transform: translateY(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+        .sidebar.mobile-open {
+          display: block;
+        }
+        .app-header {
+          padding: 12px 16px !important;
+        }
+        .header-logo {
+          width: 32px !important;
+          height: 32px !important;
+          font-size: 16px !important;
+        }
+        .header-title {
+          font-size: 14px !important;
+        }
+        .header-subtitle {
+          display: none !important;
+        }
+        .header-actions .desktop-only {
+          display: none !important;
+        }
+        .header-divider {
+          display: none !important;
+        }
+        .main-content {
+          padding: 12px !important;
+        }
+        .tab-nav-container {
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: none;
+        }
+        .tab-nav-container::-webkit-scrollbar {
+          display: none;
+        }
+        .tab-nav {
+          display: flex;
+          gap: 8px;
+          min-width: max-content;
+          padding: 4px 0;
+        }
+        .tab-btn {
+          padding: 8px 14px;
+          font-size: 12px;
+          white-space: nowrap;
+          flex-shrink: 0;
+        }
+        .tab-btn svg {
+          width: 16px;
+          height: 16px;
+        }
+        #cropper-container {
+          flex: 1;
+          min-height: 0;
+        }
+        .main-content {
+          padding: 8px !important;
+        }
+        .card {
+          padding: 14px;
+        }
+        .upload-zone {
+          padding: 24px 16px;
+        }
+        .upload-zone .text-5xl {
+          font-size: 2.5rem;
+        }
+        .btn {
+          padding: 10px 14px;
+          font-size: 13px;
+        }
+        .btn-icon {
+          width: 40px;
+          height: 40px;
+        }
+        .input-field {
+          padding: 10px 12px;
+          font-size: 14px;
+        }
+        h2,
+        .text-2xl {
+          font-size: 1.125rem !important;
+        }
+        .comparison-slider {
+          height: 260px;
+        }
+        .grid.md\:grid-cols-2 {
+          grid-template-columns: 1fr !important;
+        }
+      }
+      @media (max-width: 480px) {
+        #cropper-container {
+          flex: 1;
+          min-height: 0;
+        }
+        .main-content {
+          padding: 6px !important;
+        }
+        .comparison-slider {
+          height: 200px;
+        }
+        .tab-btn {
+          padding: 6px 10px;
+          font-size: 11px;
+        }
+        .btn {
+          padding: 8px 10px;
+          font-size: 12px;
+          gap: 4px;
+        }
+        .btn svg {
+          width: 14px;
+          height: 14px;
+        }
+        .card {
+          padding: 10px;
+        }
+        .upload-zone {
+          padding: 20px 12px;
+        }
+      }
+      .mobile-bottom-nav {
+        display: none;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: var(--bg-primary);
+        border-top: 1px solid var(--border-color);
+        padding: 6px 8px;
+        padding-bottom: max(env(safe-area-inset-bottom), 6px);
+        z-index: 999;
+      }
+      @media (max-width: 768px) {
+        .mobile-bottom-nav {
+          display: flex;
+          justify-content: space-around;
+          align-items: center;
+        }
+        .main-content {
+          padding-bottom: calc(
+            var(--mobile-nav-offset) + env(safe-area-inset-bottom)
+          ) !important;
+        }
+      }
+      .mobile-nav-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+        min-height: 40px;
+        padding: 6px 16px;
+        border-radius: 10px;
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        cursor: pointer;
+        font-size: 9px;
+        font-weight: 600;
+        letter-spacing: 0.3px;
+      }
+      .mobile-nav-btn svg {
+        width: 22px;
+        height: 22px;
+        stroke-width: 2.5;
+      }
+      .mobile-nav-btn.active {
+        color: var(--accent-text);
+      }
+      .mobile-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(4px);
+        z-index: 999;
+        animation: fadeIn 0.2s ease;
+      }
+      .mobile-overlay.active {
+        display: block;
+      }
+      .mobile-sidebar-header {
+        display: none;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--border-color);
+        position: sticky;
+        top: 0;
+        background: var(--bg-primary);
+        z-index: 10;
+      }
+      .mobile-sidebar-header h3 {
+        font-size: 16px;
+        font-weight: 600;
+      }
+      @media (max-width: 768px) {
+        .mobile-sidebar-header {
+          display: flex;
+        }
+      }
+      @media (max-width: 768px) {
+        .mobile-hidden {
+          display: none !important;
+        }
+        .mobile-full-width {
+          width: 100% !important;
+        }
+        .mobile-stack {
+          flex-direction: column !important;
+        }
+        .mobile-gap-sm {
+          gap: 8px !important;
+        }
+        #cropper-container {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .sidebar .sidebar-section {
+          margin-bottom: 16px !important;
+        }
+        .sidebar .sidebar-title {
+          font-size: 12px !important;
+          margin-bottom: 10px !important;
+        }
+        .slider {
+          height: 8px;
+        }
+        .slider::-webkit-slider-thumb {
+          width: 24px;
+          height: 24px;
+        }
+        #crop-info {
+          flex-wrap: wrap;
+          gap: 12px !important;
+          margin-top: 12px !important;
+        }
+      }
+      .mobile-nav-btn#mobile-upload-btn {
+        position: relative;
+      }
+      .mobile-nav-btn#mobile-upload-btn::after {
+        content: '';
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        width: 8px;
+        height: 8px;
+        background: var(--accent);
+        border-radius: 50%;
+        opacity: 0;
+      }
+      .mobile-nav-btn#mobile-upload-btn.has-hint::after {
+        opacity: 1;
+        animation: pulse 2s infinite;
+      }
+      #mobile-upload-placeholder {
+        display: none;
+      }
+      @media (max-width: 768px) {
+        #mobile-upload-placeholder {
+          display: block;
+        }
+        #crop-image[src=''] ~ #mobile-upload-placeholder,
+        #crop-image:not([src]) ~ #mobile-upload-placeholder {
+          display: block;
+        }
+        .has-image #mobile-upload-placeholder {
+          display: none !important;
+        }
+      }
+      @media (min-width: 769px) {
+        #mobile-upload-placeholder {
+          display: none !important;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation: none !important;
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body class="min-h-screen">
+    <div class="flex flex-col h-screen overflow-hidden">
+      <header
+        class="app-header flex items-center justify-between px-6 py-4 border-b"
+        style="border-color: var(--border-color); background: var(--bg-primary)"
+      >
+        <div class="flex items-center gap-4">
+          <div class="flex items-center gap-3">
+            <div class="header-logo w-8 h-8 flex items-center justify-center">
+              <i data-lucide="palette" class="icon-20"></i>
+            </div>
+            <div>
+              <h1 class="header-title text-lg font-semibold">Image Tools</h1>
+              <p
+                class="header-subtitle text-xs"
+                style="color: var(--text-muted)"
+              >
+                เครื่องมือแก้ไขภาพออนไลน์
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="header-actions flex items-center gap-3">
+          <button
+            id="undo-btn"
+            class="btn btn-ghost btn-icon tooltip"
+            data-tooltip="Undo (Ctrl+Z)"
+            disabled
+          >
+            <i data-lucide="undo-2" class="icon-20"></i>
+          </button>
+          <button
+            id="redo-btn"
+            class="btn btn-ghost btn-icon tooltip"
+            data-tooltip="Redo (Ctrl+Y)"
+            disabled
+          >
+            <i data-lucide="redo-2" class="icon-20"></i>
+          </button>
+          <div
+            class="header-divider w-px h-6"
+            style="background: var(--border-color)"
+          ></div>
+          <button
+            id="reset-btn"
+            class="btn btn-danger-ghost tooltip desktop-only"
+            data-tooltip="รีเซ็ตทั้งหมด"
+            disabled
+          >
+            <i data-lucide="rotate-ccw" class="icon-18"></i>
+            <span>รีเซ็ต</span>
+          </button>
+          <div
+            class="header-divider w-px h-6 desktop-only"
+            style="background: var(--border-color)"
+          ></div>
+          <button
+            id="dark-mode-toggle"
+            class="btn btn-ghost btn-icon tooltip"
+            data-tooltip="สลับโหมด"
+          >
+            <span id="dark-mode-icon"
+              ><i data-lucide="moon" class="icon-20"></i
+            ></span>
+          </button>
+        </div>
+      </header>
+      <div class="flex flex-1 overflow-hidden">
+        <aside
+          id="left-sidebar"
+          class="sidebar sidebar-left border-r overflow-y-auto scrollbar-thin"
+          style="
+            border-color: var(--border-color);
+            background: var(--bg-primary);
+          "
+        >
+          <div class="mobile-sidebar-header">
+            <h3 class="font-semibold">เครื่องมือ</h3>
+            <button id="close-left-sidebar" class="btn btn-ghost btn-icon">
+              <i data-lucide="x" class="icon-20"></i>
+            </button>
+          </div>
+          <div class="p-4">
+            <div id="upload-section" class="sidebar-section">
+              <div class="sidebar-title">อัปโหลดภาพ</div>
+              <label class="block">
+                <input
+                  type="file"
+                  id="image-input"
+                  accept="image/*"
+                  class="sr-only"
+                />
+                <div class="upload-zone">
+                  <div
+                    class="mb-4 flex items-center justify-center"
+                    style="color: var(--text-muted)"
+                  >
+                    <i data-lucide="upload" class="icon-32"></i>
+                  </div>
+                  <div class="font-semibold mb-2">ลากไฟล์มาวางที่นี่</div>
+                  <div class="text-sm" style="color: var(--text-muted)">
+                    หรือคลิกเพื่อเลือกไฟล์
+                  </div>
+                  <div class="mt-4 text-xs" style="color: var(--text-muted)">
+                    รองรับ JPG, PNG, WebP, GIF
+                  </div>
+                </div>
+              </label>
+              <div class="mt-4">
+                <div class="flex gap-2">
+                  <input
+                    type="text"
+                    id="image-url-input"
+                    placeholder="วาง URL รูปภาพ..."
+                    class="input-field flex-1"
+                  />
+                  <button
+                    id="load-url-btn"
+                    class="btn btn-secondary btn-icon tooltip"
+                    data-tooltip="โหลดจาก URL"
+                  >
+                    <i data-lucide="link" class="icon-18"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="mt-3">
+                <input
+                  type="file"
+                  id="batch-input"
+                  accept="image/*"
+                  multiple
+                  class="sr-only"
+                />
+                <label
+                  for="batch-input"
+                  class="btn btn-secondary w-full cursor-pointer"
+                >
+                  <i data-lucide="images" class="icon-18"></i>
+                  <span>อัปโหลดหลายไฟล์</span>
+                </label>
+              </div>
+            </div>
+            <div id="batch-section" class="sidebar-section hidden">
+              <div class="sidebar-title flex items-center justify-between">
+                <span>รายการภาพ</span>
+                <span id="batch-count" class="badge badge-success">0 ไฟล์</span>
+              </div>
+              <div
+                id="batch-list"
+                class="flex flex-col gap-2 max-h-48 overflow-y-auto scrollbar-thin"
+              ></div>
+              <button
+                id="batch-apply-all-btn"
+                type="button"
+                class="btn btn-secondary w-full mt-3"
+              >
+                <span>ใช้ค่านี้กับทุกภาพ</span>
+              </button>
+            </div>
+            <div id="tools-section" class="hidden">
+              <div class="sidebar-section">
+                <div class="sidebar-title">สัดส่วนภาพ</div>
+                <div class="grid grid-cols-4 gap-2">
+                  <button class="aspect-ratio-btn aspect-btn" data-ratio="NaN">
+                    อิสระ
+                  </button>
+                  <button class="aspect-ratio-btn aspect-btn" data-ratio="1">
+                    1:1
+                  </button>
+                  <button
+                    class="aspect-ratio-btn aspect-btn"
+                    data-ratio="1.778"
+                  >
+                    16:9
+                  </button>
+                  <button
+                    class="aspect-ratio-btn aspect-btn"
+                    data-ratio="0.5625"
+                  >
+                    9:16
+                  </button>
+                  <button
+                    class="aspect-ratio-btn aspect-btn"
+                    data-ratio="1.333"
+                  >
+                    4:3
+                  </button>
+                  <button class="aspect-ratio-btn aspect-btn" data-ratio="0.75">
+                    3:4
+                  </button>
+                  <button class="aspect-ratio-btn aspect-btn" data-ratio="1.5">
+                    3:2
+                  </button>
+                  <button
+                    class="aspect-ratio-btn aspect-btn"
+                    data-ratio="0.667"
+                  >
+                    2:3
+                  </button>
+                  <button
+                    class="aspect-ratio-btn aspect-btn"
+                    data-ratio="2.333"
+                  >
+                    21:9
+                  </button>
+                  <button class="aspect-ratio-btn aspect-btn" data-ratio="1.25">
+                    5:4
+                  </button>
+                  <button class="aspect-ratio-btn aspect-btn" data-ratio="0.8">
+                    4:5
+                  </button>
+                  <button class="aspect-ratio-btn aspect-btn" data-ratio="1.91">
+                    1.91:1
+                  </button>
+                </div>
+              </div>
+              <div class="sidebar-section">
+                <div class="sidebar-title">หมุนภาพ</div>
+                <div class="flex items-center gap-3 mb-3">
+                  <button
+                    id="rotate-left-btn"
+                    class="btn btn-secondary btn-icon tooltip"
+                    data-tooltip="หมุนซ้าย 90°"
+                  >
+                    <i data-lucide="rotate-ccw" class="icon-18"></i>
+                  </button>
+                  <input
+                    type="number"
+                    id="rotate-input"
+                    value="0"
+                    min="-180"
+                    max="180"
+                    class="input-field text-center flex-1"
+                  />
+                  <button
+                    id="rotate-right-btn"
+                    class="btn btn-secondary btn-icon tooltip"
+                    data-tooltip="หมุนขวา 90°"
+                  >
+                    <i data-lucide="rotate-cw" class="icon-18"></i>
+                  </button>
+                </div>
+                <input
+                  type="range"
+                  id="rotate-slider"
+                  min="-180"
+                  max="180"
+                  value="0"
+                  class="slider"
+                />
+              </div>
+              <div class="sidebar-section">
+                <div class="sidebar-title flex items-center justify-between">
+                  <span>ซูม</span>
+                  <span id="zoom-value" class="value-text">100%</span>
+                </div>
+                <input
+                  type="range"
+                  id="zoom-slider"
+                  min="1"
+                  max="5"
+                  step="0.1"
+                  value="1"
+                  class="slider"
+                />
+              </div>
+              <div class="sidebar-section">
+                <div class="sidebar-title">พลิกภาพ</div>
+                <div class="grid grid-cols-2 gap-2">
+                  <button id="flip-horizontal-btn" class="btn btn-secondary">
+                    <i data-lucide="flip-horizontal-2" class="icon-18"></i>
+                    <span>แนวนอน</span>
+                  </button>
+                  <button id="flip-vertical-btn" class="btn btn-secondary">
+                    <i data-lucide="flip-vertical-2" class="icon-18"></i>
+                    <span>แนวตั้ง</span>
+                  </button>
+                </div>
+              </div>
+              <div class="sidebar-section">
+                <label
+                  class="flex items-center justify-between cursor-pointer p-3 rounded-xl"
+                  style="background: var(--bg-tertiary)"
+                >
+                  <div class="flex items-center gap-3">
+                    <i data-lucide="grid-3x3" class="icon-20"></i>
+                    <span class="font-medium">Grid Overlay</span>
+                  </div>
+                  <input type="checkbox" id="grid-toggle" class="w-5 h-5" />
+                </label>
+              </div>
+            </div>
+          </div>
+        </aside>
+        <main
+          class="flex-1 flex flex-col overflow-hidden"
+          style="background: var(--bg-secondary)"
+        >
+          <div
+            class="tab-nav-container flex items-center gap-2 px-4 py-3 border-b overflow-x-auto scrollbar-thin"
+            style="
+              border-color: var(--border-color);
+              background: var(--bg-primary);
+            "
+            id="tabs-container"
+          >
+            <div class="tab-nav flex items-center gap-2">
+              <button class="tab-btn active" data-tab="editor">
+                <span class="flex items-center gap-2">
+                  <i data-lucide="crop" class="icon-18"></i>
+                  ตัดภาพ
+                </span>
+              </button>
+              <button class="tab-btn" data-tab="filters">
+                <span class="flex items-center gap-2">
+                  <i data-lucide="sliders-horizontal" class="icon-18"></i>
+                  ฟิลเตอร์
+                </span>
+              </button>
+              <button class="tab-btn" data-tab="watermark">
+                <span class="flex items-center gap-2">
+                  <i data-lucide="droplet" class="icon-18"></i>
+                  ลายน้ำ
+                </span>
+              </button>
+              <button class="tab-btn" data-tab="compressor">
+                <span class="flex items-center gap-2">
+                  <i data-lucide="archive" class="icon-18"></i>
+                  บีบอัด
+                </span>
+              </button>
+              <button class="tab-btn" data-tab="compare">
+                <span class="flex items-center gap-2">
+                  <i data-lucide="columns-2" class="icon-18"></i>
+                  เปรียบเทียบ
+                </span>
+              </button>
+            </div>
+          </div>
+          <div
+            class="main-content flex-1 p-4 overflow-auto"
+            style="display: flex; flex-direction: column"
+          >
+            <div
+              id="tab-editor"
+              class="tab-content flex-1"
+              style="display: flex; flex-direction: column"
+            >
+              <div id="cropper-container" class="relative flex-1">
+                <img
+                  id="crop-image"
+                  src=""
+                  alt=""
+                  style="max-width: 100%; max-height: 100%"
+                />
+                <div id="grid-overlay" class="grid-overlay hidden"></div>
+                <div id="mobile-upload-placeholder" class="text-center p-6">
+                  <div
+                    class="w-20 h-20 mx-auto mb-4 flex items-center justify-center"
+                    style="
+                      background: var(--bg-tertiary);
+                      color: var(--accent-text);
+                      border-radius: var(--radius-lg);
+                    "
+                  >
+                    <i data-lucide="cloud-upload" class="icon-40"></i>
+                  </div>
+                  <h3 class="text-lg font-semibold mb-2">อัปโหลดรูปภาพ</h3>
+                  <p class="text-sm mb-4" style="color: var(--text-muted)">
+                    แตะปุ่ม "อัปโหลด" ด้านล่างเพื่อเริ่มต้น
+                  </p>
+                  <div class="flex flex-wrap justify-center gap-2">
+                    <span
+                      class="px-3 py-1 rounded-full text-xs"
+                      style="
+                        background: var(--bg-tertiary);
+                        color: var(--text-secondary);
+                      "
+                      >JPG</span
+                    >
+                    <span
+                      class="px-3 py-1 rounded-full text-xs"
+                      style="
+                        background: var(--bg-tertiary);
+                        color: var(--text-secondary);
+                      "
+                      >PNG</span
+                    >
+                    <span
+                      class="px-3 py-1 rounded-full text-xs"
+                      style="
+                        background: var(--bg-tertiary);
+                        color: var(--text-secondary);
+                      "
+                      >WebP</span
+                    >
+                    <span
+                      class="px-3 py-1 rounded-full text-xs"
+                      style="
+                        background: var(--bg-tertiary);
+                        color: var(--text-secondary);
+                      "
+                      >GIF</span
+                    >
+                  </div>
+                </div>
+              </div>
+              <div
+                id="crop-info"
+                class="mt-2 py-2 flex items-center justify-center gap-6 hidden shrink-0"
+              >
+                <div
+                  class="flex items-center gap-2 text-sm"
+                  style="color: var(--text-secondary)"
+                >
+                  <i data-lucide="square" class="icon-16"></i>
+                  <span id="crop-dimensions" class="tabular-nums"
+                    >0 × 0 px</span
+                  >
+                </div>
+                <div
+                  class="flex items-center gap-2 text-sm"
+                  style="color: var(--text-secondary)"
+                >
+                  <i data-lucide="crosshair" class="icon-16"></i>
+                  <span id="crop-position" class="tabular-nums">(0, 0)</span>
+                </div>
+              </div>
+            </div>
+            <div id="tab-filters" class="tab-content hidden">
+              <div class="max-w-4xl mx-auto">
+                <div class="page-header">
+                  <h2 class="page-header-title">
+                    <i data-lucide="sliders-horizontal" class="icon-20"></i>
+                    ปรับแต่งฟิลเตอร์
+                  </h2>
+                  <p class="page-header-description">
+                    ปรับค่าต่างๆ เพื่อให้ภาพสวยงามตามต้องการ
+                  </p>
+                </div>
+                <div class="grid md:grid-cols-2 gap-6">
+                  <div class="card flex flex-col gap-5">
+                    <h3
+                      class="font-semibold flex items-center gap-2 pb-3"
+                      style="border-bottom: 1px solid var(--border-color)"
+                    >
+                      <i data-lucide="sun" class="icon-20"></i>
+                      แสงและสี
+                    </h3>
+                    <div>
+                      <div class="flex items-center justify-between mb-3">
+                        <label class="font-medium text-sm"
+                          ><i data-lucide="sun" class="icon-16"></i>
+                          ความสว่าง</label
+                        >
+                        <span id="brightness-value" class="value-chip"
+                          >100%</span
+                        >
+                      </div>
+                      <input
+                        type="range"
+                        id="brightness-slider"
+                        min="0"
+                        max="200"
+                        value="100"
+                        class="slider"
+                      />
+                    </div>
+                    <div>
+                      <div class="flex items-center justify-between mb-3">
+                        <label class="font-medium text-sm"
+                          ><i data-lucide="contrast" class="icon-16"></i>
+                          คอนทราสต์</label
+                        >
+                        <span id="contrast-value" class="value-chip">100%</span>
+                      </div>
+                      <input
+                        type="range"
+                        id="contrast-slider"
+                        min="0"
+                        max="200"
+                        value="100"
+                        class="slider"
+                      />
+                    </div>
+                    <div>
+                      <div class="flex items-center justify-between mb-3">
+                        <label class="font-medium text-sm"
+                          ><i data-lucide="palette" class="icon-16"></i>
+                          ความอิ่มสี</label
+                        >
+                        <span id="saturation-value" class="value-chip"
+                          >100%</span
+                        >
+                      </div>
+                      <input
+                        type="range"
+                        id="saturation-slider"
+                        min="0"
+                        max="200"
+                        value="100"
+                        class="slider"
+                      />
+                    </div>
+                  </div>
+                  <div class="card flex flex-col gap-5">
+                    <h3
+                      class="font-semibold flex items-center gap-2 pb-3"
+                      style="border-bottom: 1px solid var(--border-color)"
+                    >
+                      <i data-lucide="sparkles" class="icon-20"></i>
+                      เอฟเฟกต์
+                    </h3>
+                    <div>
+                      <div class="flex items-center justify-between mb-3">
+                        <label class="font-medium text-sm"
+                          ><i data-lucide="blend" class="icon-16"></i> Hue
+                          Rotate</label
+                        >
+                        <span id="hue-value" class="value-chip">0°</span>
+                      </div>
+                      <input
+                        type="range"
+                        id="hue-slider"
+                        min="0"
+                        max="360"
+                        value="0"
+                        class="slider"
+                      />
+                    </div>
+                    <div>
+                      <div class="flex items-center justify-between mb-3">
+                        <label class="font-medium text-sm"
+                          ><i data-lucide="wind" class="icon-16"></i>
+                          Blur</label
+                        >
+                        <span id="blur-value" class="value-chip">0px</span>
+                      </div>
+                      <input
+                        type="range"
+                        id="blur-slider"
+                        min="0"
+                        max="20"
+                        value="0"
+                        class="slider"
+                      />
+                    </div>
+                    <div class="pt-2">
+                      <label class="font-medium text-sm block mb-3"
+                        ><i data-lucide="wand-2" class="icon-16"></i>
+                        Presets</label
+                      >
+                      <div class="grid grid-cols-2 gap-3">
+                        <button id="grayscale-btn" class="btn btn-secondary">
+                          <span
+                            class="w-4 h-4 rounded-full bg-gray-500 inline-block"
+                          ></span>
+                          Grayscale
+                        </button>
+                        <button id="sepia-btn" class="btn btn-secondary">
+                          <span
+                            class="w-4 h-4 rounded-full bg-amber-600 inline-block"
+                          ></span>
+                          Sepia
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div id="tab-watermark" class="tab-content hidden">
+              <div class="max-w-4xl mx-auto">
+                <div class="page-header">
+                  <h2 class="page-header-title">
+                    <i data-lucide="droplet" class="icon-20"></i>
+                    เพิ่มลายน้ำ
+                  </h2>
+                  <p class="page-header-description">
+                    ใส่ลายน้ำเพื่อปกป้องลิขสิทธิ์ภาพของคุณ
+                  </p>
+                </div>
+                <div class="grid md:grid-cols-2 gap-6">
+                  <div class="card flex flex-col gap-5">
+                    <h3
+                      class="font-semibold flex items-center gap-2 pb-3"
+                      style="border-bottom: 1px solid var(--border-color)"
+                    >
+                      <i data-lucide="type" class="icon-20"></i>
+                      ข้อความ
+                    </h3>
+                    <div>
+                      <label class="block font-medium text-sm mb-2"
+                        ><i data-lucide="message-square" class="icon-16"></i>
+                        ข้อความลายน้ำ</label
+                      >
+                      <input
+                        type="text"
+                        id="watermark-text"
+                        placeholder="พิมพ์ข้อความลายน้ำ..."
+                        class="input-field"
+                      />
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                      <div>
+                        <label class="block font-medium text-sm mb-2"
+                          ><i data-lucide="ruler" class="icon-16"></i>
+                          ขนาด</label
+                        >
+                        <input
+                          type="number"
+                          id="watermark-size"
+                          value="24"
+                          min="12"
+                          max="100"
+                          class="input-field"
+                        />
+                      </div>
+                      <div>
+                        <label class="block font-medium text-sm mb-2"
+                          ><i data-lucide="palette" class="icon-16"></i>
+                          สี</label
+                        >
+                        <input
+                          type="color"
+                          id="watermark-color"
+                          value="#ffffff"
+                          class="input-field cursor-pointer"
+                        />
+                      </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                      <div>
+                        <label class="block font-medium text-sm mb-2"
+                          ><i data-lucide="type" class="icon-16"></i>
+                          ฟอนต์</label
+                        >
+                        <select id="watermark-font" class="input-field">
+                          <option value="Arial">Arial</option>
+                          <option value="Noto Sans Thai">Noto Sans Thai</option>
+                          <option value="Roboto">Roboto</option>
+                          <option value="Inter">Inter</option>
+                          <option value="Montserrat">Montserrat</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label class="block font-medium text-sm mb-2"
+                          ><i data-lucide="bold" class="icon-16"></i>
+                          น้ำหนัก</label
+                        >
+                        <select id="watermark-font-weight" class="input-field">
+                          <option value="normal">Normal</option>
+                          <option value="bold">Bold</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="card flex flex-col gap-5">
+                    <h3
+                      class="font-semibold flex items-center gap-2 pb-3"
+                      style="border-bottom: 1px solid var(--border-color)"
+                    >
+                      <i data-lucide="move" class="icon-20"></i>
+                      ตำแหน่งและสไตล์
+                    </h3>
+                    <div>
+                      <label class="block font-medium text-sm mb-3"
+                        ><i data-lucide="move" class="icon-16"></i>
+                        ตำแหน่ง</label
+                      >
+                      <div class="grid grid-cols-3 gap-2">
+                        <button
+                          class="watermark-position-btn aspect-btn"
+                          data-position="top-left"
+                        >
+                          บนซ้าย
+                        </button>
+                        <button
+                          class="watermark-position-btn aspect-btn"
+                          data-position="top-center"
+                        >
+                          บนกลาง
+                        </button>
+                        <button
+                          class="watermark-position-btn aspect-btn"
+                          data-position="top-right"
+                        >
+                          บนขวา
+                        </button>
+                        <button
+                          class="watermark-position-btn aspect-btn"
+                          data-position="center-left"
+                        >
+                          กลางซ้าย
+                        </button>
+                        <button
+                          class="watermark-position-btn aspect-btn active"
+                          data-position="center"
+                        >
+                          กลาง
+                        </button>
+                        <button
+                          class="watermark-position-btn aspect-btn"
+                          data-position="center-right"
+                        >
+                          กลางขวา
+                        </button>
+                        <button
+                          class="watermark-position-btn aspect-btn"
+                          data-position="bottom-left"
+                        >
+                          ล่างซ้าย
+                        </button>
+                        <button
+                          class="watermark-position-btn aspect-btn"
+                          data-position="bottom-center"
+                        >
+                          ล่างกลาง
+                        </button>
+                        <button
+                          class="watermark-position-btn aspect-btn"
+                          data-position="bottom-right"
+                        >
+                          ล่างขวา
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <div class="flex items-center justify-between mb-3">
+                        <label class="font-medium text-sm"
+                          ><i data-lucide="eye" class="icon-16"></i>
+                          ความโปร่งใส</label
+                        >
+                        <span id="watermark-opacity-value" class="value-chip"
+                          >50%</span
+                        >
+                      </div>
+                      <input
+                        type="range"
+                        id="watermark-opacity"
+                        min="0"
+                        max="100"
+                        value="50"
+                        class="slider"
+                      />
+                    </div>
+                    <div>
+                      <div class="flex items-center justify-between mb-3">
+                        <label class="font-medium text-sm"
+                          ><i data-lucide="rotate-cw" class="icon-16"></i>
+                          หมุน</label
+                        >
+                        <span id="watermark-rotate-value" class="value-chip"
+                          >0°</span
+                        >
+                      </div>
+                      <input
+                        type="range"
+                        id="watermark-rotate"
+                        min="-180"
+                        max="180"
+                        value="0"
+                        class="slider"
+                      />
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                      <div>
+                        <div class="flex items-center justify-between mb-3">
+                          <label class="font-medium text-sm"
+                            ><i
+                              data-lucide="move-horizontal"
+                              class="icon-16"
+                            ></i>
+                            X</label
+                          >
+                          <span id="watermark-offset-x-value" class="value-chip"
+                            >0px</span
+                          >
+                        </div>
+                        <input
+                          type="range"
+                          id="watermark-offset-x"
+                          min="-200"
+                          max="200"
+                          value="0"
+                          class="slider"
+                        />
+                      </div>
+                      <div>
+                        <div class="flex items-center justify-between mb-3">
+                          <label class="font-medium text-sm"
+                            ><i data-lucide="move-vertical" class="icon-16"></i>
+                            Y</label
+                          >
+                          <span id="watermark-offset-y-value" class="value-chip"
+                            >0px</span
+                          >
+                        </div>
+                        <input
+                          type="range"
+                          id="watermark-offset-y"
+                          min="-200"
+                          max="200"
+                          value="0"
+                          class="slider"
+                        />
+                      </div>
+                    </div>
+                    <label
+                      class="flex items-center gap-3 p-4 rounded-xl cursor-pointer"
+                      style="background: var(--bg-tertiary)"
+                    >
+                      <input
+                        type="checkbox"
+                        id="watermark-pattern-mode"
+                        class="w-5 h-5"
+                      />
+                      <div>
+                        <div class="font-medium flex items-center gap-1">
+                          <i data-lucide="repeat" class="icon-16"></i> โหมด
+                          Pattern
+                        </div>
+                        <div class="text-sm" style="color: var(--text-muted)">
+                          วนซ้ำลายน้ำทั้งรูป
+                        </div>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div id="tab-compressor" class="tab-content hidden">
+              <div class="max-w-4xl mx-auto">
+                <div class="page-header">
+                  <h2 class="page-header-title">
+                    <i data-lucide="archive" class="icon-20"></i>
+                    บีบอัดรูปภาพ
+                  </h2>
+                  <p class="page-header-description">
+                    ลดขนาดไฟล์โดยยังคงคุณภาพที่ดี
+                  </p>
+                </div>
+                <div class="grid md:grid-cols-2 gap-6">
+                  <div class="card">
+                    <h3
+                      class="font-semibold flex items-center gap-2 pb-3 mb-4"
+                      style="border-bottom: 1px solid var(--border-color)"
+                    >
+                      <i data-lucide="image" class="icon-20"></i>
+                      ตัวอย่าง
+                    </h3>
+                    <div
+                      class="rounded-xl p-6 flex items-center justify-center min-h-[280px]"
+                      style="background: var(--bg-canvas)"
+                    >
+                      <img
+                        id="compressor-preview"
+                        class="max-w-full max-h-[260px] object-contain hidden rounded-lg"
+                        alt="Preview"
+                      />
+                      <div id="compressor-placeholder" class="text-center">
+                        <div class="font-medium mb-1">ยังไม่มีภาพ</div>
+                        <div class="text-sm" style="color: var(--text-muted)">
+                          อัปโหลดภาพเพื่อเริ่มบีบอัด
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="card flex flex-col gap-5">
+                    <h3
+                      class="font-semibold flex items-center gap-2 pb-3"
+                      style="border-bottom: 1px solid var(--border-color)"
+                    >
+                      <i data-lucide="settings" class="icon-20"></i>
+                      ตั้งค่า
+                    </h3>
+                    <div>
+                      <div class="flex items-center justify-between mb-3">
+                        <label class="font-medium text-sm"
+                          ><i data-lucide="bar-chart-2" class="icon-16"></i>
+                          คุณภาพ</label
+                        >
+                        <span id="compressor-quality-value" class="value-chip"
+                          >100%</span
+                        >
+                      </div>
+                      <input
+                        type="range"
+                        id="compressor-quality-slider"
+                        min="1"
+                        max="100"
+                        value="100"
+                        class="slider"
+                      />
+                      <p class="text-xs mt-2" style="color: var(--text-muted)">
+                        ลดคุณภาพเพื่อลดขนาดไฟล์
+                      </p>
+                    </div>
+                    <div>
+                      <label class="block font-medium text-sm mb-2"
+                        ><i data-lucide="folder" class="icon-16"></i>
+                        รูปแบบไฟล์</label
+                      >
+                      <select id="compressor-format" class="input-field">
+                        <option value="jpeg">JPEG - ขนาดเล็ก</option>
+                        <option value="png">PNG - คุณภาพสูง</option>
+                        <option value="webp">WebP - สมดุล</option>
+                      </select>
+                    </div>
+                    <div
+                      id="compressor-info"
+                      class="p-4 rounded-xl hidden"
+                      style="background: var(--bg-tertiary)"
+                    >
+                      <div class="flex flex-col gap-3">
+                        <div class="flex justify-between items-center">
+                          <span class="text-sm" style="color: var(--text-muted)"
+                            >ขนาดต้นฉบับ</span
+                          >
+                          <span
+                            id="compressor-original-size"
+                            class="font-semibold tabular-nums"
+                            >-</span
+                          >
+                        </div>
+                        <div class="flex justify-between items-center">
+                          <span class="text-sm" style="color: var(--text-muted)"
+                            >ขนาดหลังบีบอัด</span
+                          >
+                          <span
+                            id="compressor-compressed-size"
+                            class="font-semibold tabular-nums"
+                            >-</span
+                          >
+                        </div>
+                        <div class="flex justify-between items-center">
+                          <span
+                            id="compressor-reduction-label"
+                            class="text-sm"
+                            style="color: var(--text-muted)"
+                            >ประหยัด</span
+                          >
+                          <span
+                            id="compressor-reduction"
+                            class="badge badge-success tabular-nums"
+                            >-</span
+                          >
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div id="tab-compare" class="tab-content hidden">
+              <div class="max-w-4xl mx-auto">
+                <div class="page-header">
+                  <h2 class="page-header-title">
+                    <i data-lucide="columns-2" class="icon-20"></i>
+                    เปรียบเทียบภาพ
+                  </h2>
+                  <p class="page-header-description">
+                    ลากตัวเลื่อนเพื่อเปรียบเทียบก่อน-หลัง
+                  </p>
+                </div>
+                <div class="card">
+                  <div id="comparison-slider" class="comparison-slider">
+                    <img
+                      id="compare-before"
+                      src=""
+                      alt="Before"
+                      class="before"
+                    />
+                    <img id="compare-after" src="" alt="After" class="after" />
+                    <div id="comparison-handle" class="comparison-handle"></div>
+                  </div>
+                  <div class="flex justify-center gap-16 mt-6">
+                    <div class="text-center">
+                      <div
+                        class="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-2"
+                        style="background: var(--bg-tertiary)"
+                      >
+                        <i data-lucide="image" class="icon-24"></i>
+                      </div>
+                      <div class="font-medium">ก่อน</div>
+                      <div class="text-xs" style="color: var(--text-muted)">
+                        ภาพต้นฉบับ
+                      </div>
+                    </div>
+                    <div class="text-center">
+                      <div
+                        class="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-2"
+                        style="
+                          background: var(--accent-subtle);
+                          color: var(--accent-text);
+                        "
+                      >
+                        <i data-lucide="droplet" class="icon-24"></i>
+                      </div>
+                      <div class="font-medium">หลัง</div>
+                      <div class="text-xs" style="color: var(--text-muted)">
+                        ภาพที่แก้ไข
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+        <aside
+          id="right-sidebar"
+          class="sidebar sidebar-right border-l overflow-y-auto scrollbar-thin"
+          style="
+            border-color: var(--border-color);
+            background: var(--bg-primary);
+          "
+        >
+          <div class="mobile-sidebar-header">
+            <h3 class="font-semibold">ส่งออก</h3>
+            <button id="close-right-sidebar" class="btn btn-ghost btn-icon">
+              <i data-lucide="x" class="icon-20"></i>
+            </button>
+          </div>
+          <div class="p-4">
+            <div class="sidebar-section">
+              <div class="sidebar-title">ตัวอย่างผลลัพธ์</div>
+              <div
+                class="rounded-xl p-4 flex items-center justify-center min-h-[180px]"
+                style="background: var(--bg-canvas)"
+              >
+                <img
+                  id="preview-image"
+                  class="max-w-full max-h-[160px] object-contain hidden rounded-lg"
+                  alt="Preview"
+                />
+                <div id="preview-placeholder" class="text-center">
+                  <div
+                    class="mb-2 flex items-center justify-center"
+                    style="color: var(--text-muted)"
+                  >
+                    <i data-lucide="image" class="icon-32"></i>
+                  </div>
+                  <div class="text-sm" style="color: var(--text-muted)">
+                    ตัวอย่างจะแสดงที่นี่
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="sidebar-section">
+              <div class="sidebar-title">ตั้งค่าการส่งออก</div>
+              <div class="flex flex-col gap-4">
+                <div>
+                  <label class="block text-sm font-medium mb-2"
+                    >รูปแบบไฟล์</label
+                  >
+                  <select id="export-format" class="input-field">
+                    <option value="jpeg">JPEG</option>
+                    <option value="png">PNG</option>
+                    <option value="webp">WebP</option>
+                  </select>
+                </div>
+                <div>
+                  <div class="flex items-center justify-between mb-2">
+                    <label class="text-sm font-medium">คุณภาพ</label>
+                    <span id="quality-value" class="value-text">100%</span>
+                  </div>
+                  <input
+                    type="range"
+                    id="quality-slider"
+                    min="10"
+                    max="100"
+                    value="100"
+                    class="slider"
+                  />
+                </div>
+              </div>
+            </div>
+            <div class="sidebar-section">
+              <div class="sidebar-title">ดำเนินการ</div>
+              <div class="flex flex-col gap-3">
+                <button
+                  id="download-btn"
+                  class="btn btn-primary w-full"
+                  disabled
+                >
+                  <i data-lucide="download" class="icon-18"></i>
+                  <span>ดาวน์โหลด</span>
+                </button>
+                <button id="copy-btn" class="btn btn-secondary w-full" disabled>
+                  <i data-lucide="copy" class="icon-18"></i>
+                  <span>คัดลอกไปคลิปบอร์ด</span>
+                </button>
+                <button
+                  id="batch-download-btn"
+                  class="btn btn-secondary w-full hidden"
+                  disabled
+                >
+                  <i data-lucide="archive" class="icon-18"></i>
+                  <span>ดาวน์โหลด ZIP</span>
+                </button>
+              </div>
+            </div>
+            <div id="progress-container" class="sidebar-section hidden">
+              <div
+                class="p-4 rounded-xl"
+                style="background: var(--bg-tertiary)"
+              >
+                <div class="flex items-center justify-between mb-3">
+                  <span class="text-sm font-medium">กำลังประมวลผล...</span>
+                  <span id="progress-text" class="value-text">0%</span>
+                </div>
+                <div
+                  class="w-full h-2 rounded-full overflow-hidden"
+                  style="background: var(--border-color)"
+                >
+                  <div
+                    id="progress-bar"
+                    class="h-full rounded-full transition-[width] duration-300"
+                    style="width: 0%; background: var(--accent)"
+                  ></div>
+                </div>
+              </div>
+            </div>
+            <div class="sidebar-section mobile-hidden">
+              <div class="sidebar-title">คีย์ลัด</div>
+              <div
+                class="flex flex-col gap-2 text-sm"
+                style="color: var(--text-muted)"
+              >
+                <div class="flex justify-between">
+                  <span>Undo</span
+                  ><kbd
+                    class="px-2 py-1 text-xs"
+                    style="background: var(--bg-tertiary)"
+                    >Ctrl+Z</kbd
+                  >
+                </div>
+                <div class="flex justify-between">
+                  <span>Redo</span
+                  ><kbd
+                    class="px-2 py-1 text-xs"
+                    style="background: var(--bg-tertiary)"
+                    >Ctrl+Y</kbd
+                  >
+                </div>
+                <div class="flex justify-between">
+                  <span>Paste</span
+                  ><kbd
+                    class="px-2 py-1 text-xs"
+                    style="background: var(--bg-tertiary)"
+                    >Ctrl+V</kbd
+                  >
+                </div>
+                <div class="flex justify-between">
+                  <span>ปรับ Crop</span
+                  ><kbd
+                    class="px-2 py-1 text-xs"
+                    style="background: var(--bg-tertiary)"
+                    >↑↓←→</kbd
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+    <div id="mobile-overlay" class="mobile-overlay"></div>
+    <nav class="mobile-bottom-nav">
+      <button class="mobile-nav-btn" id="mobile-tools-btn">
+        <i data-lucide="settings"></i>
+        <span>เครื่องมือ</span>
+      </button>
+      <button class="mobile-nav-btn" id="mobile-upload-btn">
+        <i data-lucide="cloud-upload"></i>
+        <span>อัปโหลด</span>
+      </button>
+      <button class="mobile-nav-btn active" id="mobile-edit-btn">
+        <i data-lucide="crop"></i>
+        <span>แก้ไข</span>
+      </button>
+      <button class="mobile-nav-btn" id="mobile-export-btn">
+        <i data-lucide="download"></i>
+        <span>ดาวน์โหลด</span>
+      </button>
+    </nav>
+    <script src="js/modules/core.js"></script>
+    <script src="js/modules/cropper.js"></script>
+    <script src="js/modules/filters.js"></script>
+    <script src="js/modules/history.js"></script>
+    <script src="js/modules/watermark.js"></script>
+    <script src="js/modules/compressor.js"></script>
+    <script src="js/modules/comparison.js"></script>
+    <script src="js/modules/keyboard.js"></script>
+    <script src="js/modules/batch.js"></script>
+    <script src="js/ImageApp.js"></script>
+    <script>
+      const SERVICE_WORKER_PATH = './service-worker.js';
+
+      function RegisterServiceWorker() {
+        if (!('serviceWorker' in navigator)) {
+          return;
+        }
+        window.addEventListener('load', function () {
+          navigator.serviceWorker
+            .register(SERVICE_WORKER_PATH)
+            .catch(function (error) {
+              console.warn('Service worker registration failed.', error);
+            });
+        });
+      }
+
+      RegisterServiceWorker();
+    </script>
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        const left_sidebar = document.getElementById('left-sidebar');
+        const right_sidebar = document.getElementById('right-sidebar');
+        const overlay = document.getElementById('mobile-overlay');
+        const mobile_tools_btn = document.getElementById('mobile-tools-btn');
+        const mobile_upload_btn = document.getElementById('mobile-upload-btn');
+        const mobile_edit_btn = document.getElementById('mobile-edit-btn');
+        const mobile_export_btn = document.getElementById('mobile-export-btn');
+        const close_left_btn = document.getElementById('close-left-sidebar');
+        const close_right_btn = document.getElementById('close-right-sidebar');
+        const mobile_nav_btns = document.querySelectorAll('.mobile-nav-btn');
+        const image_input = document.getElementById('image-input');
+        const cropper_container = document.getElementById('cropper-container');
+        const mobile_placeholder = document.getElementById(
+          'mobile-upload-placeholder'
+        );
+
+        function CloseSidebars() {
+          left_sidebar?.classList.remove('mobile-open');
+          right_sidebar?.classList.remove('mobile-open');
+          overlay?.classList.remove('active');
+        }
+
+        function SetActiveNavBtn(btn) {
+          mobile_nav_btns.forEach(b => b.classList.remove('active'));
+          btn?.classList.add('active');
+        }
+
+        function HideMobilePlaceholder() {
+          if (mobile_placeholder) {
+            mobile_placeholder.style.display = 'none';
+          }
+          cropper_container?.classList.add('has-image');
+        }
+
+        mobile_tools_btn?.addEventListener('click', function () {
+          CloseSidebars();
+          left_sidebar?.classList.add('mobile-open');
+          overlay?.classList.add('active');
+          SetActiveNavBtn(this);
+        });
+
+        mobile_upload_btn?.addEventListener('click', function () {
+          if (window.innerWidth <= 768) {
+            image_input?.click();
+            SetActiveNavBtn(mobile_edit_btn);
+          } else {
+            CloseSidebars();
+            left_sidebar?.classList.add('mobile-open');
+            overlay?.classList.add('active');
+            SetActiveNavBtn(this);
+          }
+        });
+
+        mobile_edit_btn?.addEventListener('click', function () {
+          CloseSidebars();
+          SetActiveNavBtn(this);
+        });
+
+        mobile_export_btn?.addEventListener('click', function () {
+          CloseSidebars();
+          right_sidebar?.classList.add('mobile-open');
+          overlay?.classList.add('active');
+          SetActiveNavBtn(this);
+        });
+
+        close_left_btn?.addEventListener('click', function () {
+          CloseSidebars();
+          SetActiveNavBtn(mobile_edit_btn);
+        });
+
+        close_right_btn?.addEventListener('click', function () {
+          CloseSidebars();
+          SetActiveNavBtn(mobile_edit_btn);
+        });
+
+        overlay?.addEventListener('click', function () {
+          CloseSidebars();
+          SetActiveNavBtn(mobile_edit_btn);
+        });
+
+        image_input?.addEventListener('change', function () {
+          if (this.files && this.files[0]) {
+            HideMobilePlaceholder();
+          }
+        });
+
+        const observer = new MutationObserver(function (mutations) {
+          mutations.forEach(function (mutation) {
+            if (
+              mutation.type === 'childList' ||
+              mutation.type === 'attributes'
+            ) {
+              const crop_image = document.getElementById('crop-image');
+              if (
+                crop_image &&
+                crop_image.src &&
+                crop_image.src !== window.location.href
+              ) {
+                HideMobilePlaceholder();
+              }
+            }
+          });
+        });
+
+        if (cropper_container) {
+          observer.observe(cropper_container, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['src']
+          });
+        }
+
+        mobile_placeholder?.addEventListener('click', function () {
+          image_input?.click();
+        });
+
+        function InitializeTooltips() {
+          const tooltips = document.querySelectorAll('.tooltip');
+          tooltips.forEach(tooltip => {
+            tooltip.addEventListener('mouseenter', function () {
+              const rect = this.getBoundingClientRect();
+              const tooltip_width = 150;
+              const bounds_rect =
+                this.closest('.sidebar')?.getBoundingClientRect();
+              const bounds_left = bounds_rect?.left ?? 0;
+              const bounds_right = bounds_rect?.right ?? window.innerWidth;
+              this.classList.remove(
+                'tooltip-left',
+                'tooltip-right',
+                'tooltip-bottom'
+              );
+              if (
+                rect.left + rect.width / 2 + tooltip_width / 2 >
+                bounds_right
+              ) {
+                this.classList.add('tooltip-left');
+              } else if (
+                rect.left + rect.width / 2 - tooltip_width / 2 <
+                bounds_left
+              ) {
+                this.classList.add('tooltip-right');
+              }
+              if (rect.top < 50) {
+                this.classList.add('tooltip-bottom');
+              }
+            });
+          });
+        }
+
+        InitializeTooltips();
+        lucide.createIcons();
+      });
+    </script>
+  </body>
+</html>
